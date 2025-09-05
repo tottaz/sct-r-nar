@@ -3,14 +3,14 @@
 **Rúnar** is an AI-powered Resume and Job Description platform inspired by the wisdom of the Norse runes.  
 It helps candidates and recruiters craft, analyze, and improve resumes and job descriptions with the strength of AI.  
 
-## ✨ Features
-- 📂 Upload and analyze resumes (PDF) with AI insights  
-- 🧾 Generate professional job descriptions from structured input  
-- 🛠️ Create ATS-friendly resumes from form data  
-- 🔍 AI-powered resume analysis: strengths, weaknesses, and fit for roles  
-- ⚔️ Norse-inspired design philosophy: turning career journeys into sagas  
+## Features
+- Upload and analyze resumes (PDF) with AI insights  
+- Generate professional job descriptions from structured input  
+- Create ATS-friendly resumes from form data  
+- AI-powered resume analysis: strengths, weaknesses, and fit for roles  
+- Norse-inspired design philosophy: turning career journeys into sagas  
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.10+  
