@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Upload Document</h2>
+    <form action="{{ url_for('signature.docupload') }}" method="POST" enctype="multipart/form-data" class="mb-5">
+        <div class="mb-3">
+            <label for="pdfFile" class="form-label">Upload PDF</label>
+            <input class="form-control" type="file" id="pdfFile" name="pdf_file" accept="application/pdf">
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+</div>
+
+<div class="container py-4">
+    <h3>Actions</h3>
+    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#jobDescModal">
+        Generate Job Description
+    </button>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#resumeModal">
+        Create Resume
+    </button>
+</div>
+
+<div class="container py-4">
+    <h3>Your Documents</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in docs %}
+            <tr>
+                <td>{{ doc.filename }}</td>
+                <td>{{ doc.type }}</td>
+                <td>{{ doc.status }}</td>
+                <td>
+                {% if doc.uploaded_at %}
+                    {{ doc.uploaded_at | todatetime |strftime('%Y-%m-%d %H:%M') }}
+                {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('signature.docview', doc_id=doc.id) }}" class="btn btn-sm btn-info">View</a>
+                    <button type="button" class="btn btn-sm btn-warning analyze-btn" data-docid="{{ doc.id }}">Analyze</button>
+                    <a href="{{ url_for('signature.download_signed', doc_id=doc.id) }}" class="btn btn-sm btn-success">Download</a>
+                    <form action="{{ url_for('signature.docdelete', doc_id=doc.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">No documents found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Job Description Modal -->
+<div class="modal fade" id="jobDescModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{{ url_for('signature.generate_jobdesc') }}" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title">Create Job Description</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" name="role" placeholder="Role" class="form-control mb-2">
+          <input type="text" name="skills" placeholder="Skills" class="form-control mb-2">
+          <input type="text" name="experience" placeholder="Experience" class="form-control mb-2">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Resume Modal -->
+<div class="modal fade" id="resumeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{{ url_for('signature.generate_resume') }}" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title">Create Resume</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" name="name" placeholder="Full Name" class="form-control mb-2">
+          <input type="text" name="contact" placeholder="Email / Phone" class="form-control mb-2">
+          <textarea name="education" placeholder="Education" class="form-control mb-2"></textarea>
+          <textarea name="experience" placeholder="Experience" class="form-control mb-2"></textarea>
+          <textarea name="skills" placeholder="Skills" class="form-control mb-2"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Generate Resume</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Analyze Result Modal -->
+<div class="modal fade" id="analyzeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Document Analysis</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" id="closeAnalysisModal"></button>
+      </div>
+        <div class="modal-body" id="analyzeContent">
+            <div class="d-flex justify-content-center py-5" id="analyzeSpinner">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <pre id="analyzeResult" style="white-space: pre-wrap; display:none;"></pre>
+        </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success" id="saveAnalysisBtn">Save as Text</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Result Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resultTitle">Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-center py-5" id="resultSpinner" style="display:none;">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <pre id="resultContent" style="white-space: pre-wrap;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success" id="saveResultBtn">Save as TXT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Analyze modal
+    const analyzeModalEl = document.getElementById("analyzeModal");
+    const analyzeModal = new bootstrap.Modal(analyzeModalEl);
+    const analyzeContent = document.getElementById("analyzeContent");
+    const spinner = document.getElementById("analyzeSpinner");
+    const result = document.getElementById("analyzeResult");
+    const saveBtn = document.getElementById("saveAnalysisBtn");
+
+    // Result modal (jobdesc + resume)
+    const resultModalEl = document.getElementById("resultModal");
+    const resultModal = new bootstrap.Modal(resultModalEl);   // <-- missing before
+    const resultTitle = document.getElementById("resultTitle");
+    const resultContent = document.getElementById("resultContent");
+    const resultSpinner = document.getElementById("resultSpinner");
+    const saveResultBtn = document.getElementById("saveResultBtn");
+
+    // Attach analyze button clicks
+    document.querySelectorAll(".analyze-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const docId = btn.dataset.docid;
+
+            // Reset modal            
+            spinner.style.display = "flex";
+            result.style.display = "none";
+            analyzeContent.innerHTML = "";
+            analyzeContent.appendChild(spinner);
+
+            // Show modal
+            analyzeModal.show();
+
+            try {
+                const resp = await fetch(`/analyze_doc/${docId}`);
+                const data = await resp.json();
+
+                spinner.style.display = "none";
+
+                if (data.success) {
+                    const pre = document.createElement("pre");
+                    pre.style.whiteSpace = "pre-wrap";
+                    pre.innerText = data.analysis;
+                    analyzeContent.appendChild(pre);
+
+                    saveBtn.onclick = () => {
+                        const blob = new Blob([data.analysis], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `analysis_${docId}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                    };
+                } else {
+                    analyzeContent.innerHTML = `<p class="text-danger">${data.analysis || 'Error analyzing document.'}</p>`;
+                }
+            } catch (err) {
+                spinner.style.display = "none";
+                analyzeContent.innerHTML = `<p class="text-danger">Error: ${err}</p>`;
+            }
+        });
+    });
+
+    // Close modal button
+    document.getElementById("closeAnalysisModal").addEventListener("click", () => {
+        analyzeModal.hide();
+    });
+
+    function handleFormSubmit(form, title) {
+        form.addEventListener("submit", async function(e) {
+            e.preventDefault();
+
+            const parentModalEl = form.closest(".modal");
+            if (parentModalEl) {
+                const parentModal = bootstrap.Modal.getInstance(parentModalEl);
+                if (parentModal) parentModal.hide();
+            }
+
+            resultTitle.innerText = title;
+            resultContent.innerText = "";
+            resultSpinner.style.display = "flex";
+            resultModal.show();
+
+            const formData = new FormData(form);
+
+            try {
+                const resp = await fetch(form.action, {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await resp.json();
+
+                resultSpinner.style.display = "none";
+
+                if (data.success) {
+                    resultContent.innerText = data.result;
+
+                    saveResultBtn.onclick = () => {
+                        const blob = new Blob([data.result], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${title.replace(/\s+/g, "_").toLowerCase()}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                    };
+                } else {
+                    resultContent.innerText = "Error generating result.";
+                }
+            } catch (err) {
+                resultSpinner.style.display = "none";
+                resultContent.innerText = `Error: ${err}`;
+            }
+        });
+    }
+
+    // Hook jobdesc + resume forms
+    const jobDescForm = document.querySelector("#jobDescModal form");
+    const resumeForm = document.querySelector("#resumeModal form");
+
+    handleFormSubmit(jobDescForm, "Job Description");
+    handleFormSubmit(resumeForm, "Resume");
+
+});
+</script>
+{% endblock %}
